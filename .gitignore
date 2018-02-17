@@ -1,4 +1,7 @@
-build/
 .project
+.cproject
+.settings/
+
+build/
 
 make_and_run
