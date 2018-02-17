@@ -19,7 +19,7 @@ using json = nlohmann::json;
 int lane = 1;
 
 // Have a reference velocity to target
-double ref_vel = 49.5; // mph
+double ref_vel = 0.0; // mph
 
 
 // For converting back and forth between radians and degrees.
