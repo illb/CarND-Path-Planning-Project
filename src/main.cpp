@@ -17,10 +17,14 @@ using json = nlohmann::json;
 
 // start in lane 1
 int lane = 1;
+const int LANE_SIZE = 4; // meter
+
+int d(int lane) {
+	return (4 * lane) + 2;
+}
 
 // Have a reference velocity to target
 double ref_vel = 0.0; // mph
-
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() {
@@ -257,7 +261,7 @@ int main() {
 							for (int i = 0; i < sensor_fusion.size(); i++) {
 								// car is in my lane
 								float d = sensor_fusion[i][6];
-								if (d < (2+4*lane+2) && d > (2+4*lane-2)) {
+								if (d < 2 + d(lane) && d > d(lane) - 2) {
 									double vx = sensor_fusion[i][3];
 									double vy = sensor_fusion[i][4];
 									double check_speed = sqrt(vx*vx+vy*vy);
@@ -322,9 +326,9 @@ int main() {
 							}
 
 							// In Frenet add evenly 30m spaced points ahead of the starting reference
-							vector<double> next_wp0 = getXY(car_s + 30, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-							vector<double> next_wp1 = getXY(car_s + 60, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-							vector<double> next_wp2 = getXY(car_s + 90, (2 + 4 * lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+							vector<double> next_wp0 = getXY(car_s + 30, d(lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+							vector<double> next_wp1 = getXY(car_s + 60, d(lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+							vector<double> next_wp2 = getXY(car_s + 90, d(lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
 							ptsx.push_back(next_wp0[0]);
 							ptsx.push_back(next_wp1[0]);
