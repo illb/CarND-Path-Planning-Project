@@ -10,21 +10,19 @@
 #include "json.hpp"
 #include "spline.h"
 
+#include "const.h"
+#include "vehicle.h"
+
 using namespace std;
 
 // for convenience
 using json = nlohmann::json;
 
-// start in lane 1
-int lane = 1;
-const int LANE_SIZE = 4; // meter
-
 int dFromLane(int lane) {
 	return (4 * lane) + 2;
 }
 
-// Have a reference velocity to target
-double ref_vel = 0.0; // mph
+Vehicle vehicle(1, 0, 0, 0, "KL");
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() {
@@ -211,6 +209,14 @@ int main() {
 		map_waypoints_dy.push_back(d_y);
 	}
 
+	vector<float> road_data;
+	road_data.push_back(10.0); // target_speed
+	road_data.push_back(3); // lanes_available
+	road_data.push_back(20); // goal_s
+	road_data.push_back(1); // goal_lane
+	road_data.push_back(4.0); // max_acceleration
+	vehicle.configure(road_data);
+
 	h.onMessage(
 			[&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
 					uWS::OpCode opCode) {
@@ -255,35 +261,52 @@ int main() {
 								car_s = end_path_s;
 							}
 
-							bool too_close = false;
+							vehicle.s = car_s;
+							vehicle.v = car_speed;
+							vehicle.goal_s = car_s + 20;
 
-							// find ref_v to use
+							///////////////////////////////
+
+							// make vehicles
+							map<int, Vehicle> vehicles;
 							for (int i = 0; i < sensor_fusion.size(); i++) {
-								// car is in my lane
-								float d = sensor_fusion[i][6];
-								if (d < 2 + dFromLane(lane) && d > dFromLane(lane) - 2) {
-									double vx = sensor_fusion[i][3];
-									double vy = sensor_fusion[i][4];
-									double check_speed = sqrt(vx*vx+vy*vy);
-									double check_car_s = sensor_fusion[i][5];
+								double v_vx = sensor_fusion[i][3];
+								double v_vy = sensor_fusion[i][4];
+								double v_speed = sqrt(v_vx*v_vx + v_vy*v_vy);
+								double v_s = sensor_fusion[i][5];
+								int v_lane = (int) sensor_fusion[i][6] / LANE_SIZE;
+								int v_id = sensor_fusion[i][0];
 
-									check_car_s += ((double)prev_size*0.02*check_speed); // if using previous points can project s value out
-									// check s values greater than mine and s gap
-									if ((check_car_s > car_s) && ((check_car_s - car_s) < 30)) {
-										// Do some logic here, lower reference velocity so me don't crash into the car in front of us, could
-										// also flag to try to change lanes.
-										//ref_vel = 29.5; // mph
-										too_close = true;
-									}
+								v_s += (double)prev_size * FRAME_SEC * v_speed;
+
+								if (v_lane >= 0) {
+									Vehicle other_vehicle(v_lane, v_s, v_speed, 0);
+									vehicles.insert(std::pair<int, Vehicle>(v_id, other_vehicle));
 								}
 							}
 
-							if (too_close) {
-								ref_vel -= 0.224;
-							} else if (ref_vel < 49.5) {
-								ref_vel += 0.224;
+							// generate predictions
+							map<int, vector<Vehicle>> predictions;
+							map<int, Vehicle>::iterator it = vehicles.begin();
+							while (it != vehicles.end()) {
+								int v_id = it->first;
+								vector<Vehicle> preds = it->second.generate_predictions();
+								predictions[v_id] = preds;
+								it++;
 							}
 
+							vector<Vehicle> trajectory = vehicle.choose_next_state(predictions);
+							vehicle.realize_next_state(trajectory);
+
+
+							// Have a reference velocity to target
+							double ref_vel = vehicle.v;
+							int lane = vehicle.lane;
+
+							///////////////////////////////
+							// debug
+							cout << vehicle.state << "\n";
+							///////////////////////////////
 
 							// Create a list of widely spaced (x, y) waypoints, evenly spaced at 30m
 							// later we will interpolate these waypoints with a spline and fill it in with more points that control speed
@@ -373,7 +396,7 @@ int main() {
 
 							// Fill up the rest of our path planner after filling it with previous points, here we will always output 50 points
 							for (int i = 1; i <= 50 - previous_path_x.size(); i++) {
-								double N = target_dist / (0.02 * ref_vel / 2.24);
+								double N = target_dist / (FRAME_SEC * ref_vel / 2.24);
 								double x_point = x_add_on + (target_x) / N;
 								double y_point = s(x_point);
 
