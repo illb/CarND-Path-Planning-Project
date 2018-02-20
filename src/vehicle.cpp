@@ -270,11 +270,7 @@ vector<Vehicle> Vehicle::lane_change_trajectory(string state,
 	return trajectory;
 }
 
-void Vehicle::increment(int dt = 1) {
-	this->s = position_at(dt);
-}
-
-float Vehicle::position_at(int t) {
+float Vehicle::position_at(double t) {
 	return this->s + this->v * t + this->a * t * t / 2.0;
 }
 
@@ -330,10 +326,10 @@ vector<Vehicle> Vehicle::generate_predictions(int horizon) {
 	 */
 	vector<Vehicle> predictions;
 	for (int i = 0; i < horizon; i++) {
-		float next_s = position_at(i);
+		float next_s = position_at(FRAME_SEC * i);
 		float next_v = 0;
 		if (i < horizon - 1) {
-			next_v = position_at(i + 1) - s;
+			next_v = position_at(FRAME_SEC * (i + 1)) - s;
 		}
 		predictions.push_back(Vehicle(this->lane, next_s, next_v, 0));
 	}
