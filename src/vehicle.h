@@ -23,7 +23,7 @@ public:
 
 	int L = 1;
 
-	int preferred_buffer = 10; // impacts "keep lane" behavior.
+	int preferred_buffer = 20; // impacts "keep lane" behavior.
 
 	int lane = 1;
 	int s = 0;
@@ -50,7 +50,7 @@ public:
 
 	vector<Vehicle> choose_next_state(map<int, vector<Vehicle>> predictions);
 
-	vector<string> successor_states();
+	vector<string> successor_states(map<int, vector<Vehicle>> predictions);
 
 	vector<Vehicle> generate_trajectory(string state,
 			map<int, vector<Vehicle>> predictions);

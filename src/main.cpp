@@ -214,7 +214,7 @@ int main() {
 	road_data.push_back(3); // lanes_available
 	road_data.push_back(20); // goal_s
 	road_data.push_back(1); // goal_lane
-	road_data.push_back(4.0); // max_acceleration
+	road_data.push_back(200.0); // max_acceleration
 	vehicle.configure(road_data);
 
 	h.onMessage(
@@ -263,7 +263,7 @@ int main() {
 
 							vehicle.s = car_s;
 							vehicle.v = car_speed;
-							vehicle.goal_s = car_s + 20;
+							vehicle.goal_s = car_s + 30;
 
 							///////////////////////////////
 

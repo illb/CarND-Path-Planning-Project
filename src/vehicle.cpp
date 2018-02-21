@@ -55,7 +55,7 @@ vector<Vehicle> Vehicle::choose_next_state(
 	 OUTPUT: The the best (lowest cost) trajectory corresponding to the next ego vehicle state.
 
 	 */
-	vector<string> states = successor_states();
+	vector<string> states = successor_states(predictions);
 	float cost;
 	vector<float> costs;
 	vector<string> final_states;
@@ -76,33 +76,47 @@ vector<Vehicle> Vehicle::choose_next_state(
 	return final_trajectories[best_idx];
 }
 
-vector<string> Vehicle::successor_states() {
+vector<string> Vehicle::successor_states(map<int, vector<Vehicle>> predictions) {
 	/*
 	 Provides the possible next states given the current state for the FSM
 	 discussed in the course, with the exception that lane changes happen
 	 instantaneously, so LCL and LCR can only transition back to KL.
 	 */
 	vector<string> states;
-	states.push_back("KL");
 	string state = this->state;
-//	if (state.compare("KL") == 0) {
-//		if (lane > 0) {
-//			states.push_back("PLCL");
-//		}
-//		if (lane < lanes_available - 1) {
-//			states.push_back("PLCR");
-//		}
-//	} else if (state.compare("PLCL") == 0) {
-//		if (lane > 0) {
-//			states.push_back("PLCL");
-//			states.push_back("LCL");
-//		}
-//	} else if (state.compare("PLCR") == 0) {
-//		if (lane < lanes_available - 1) {
-//			states.push_back("PLCR");
-//			states.push_back("LCR");
-//		}
-//	}
+	if (state.compare("KL") == 0) {
+		Vehicle vehicle_ahead;
+		if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
+			Vehicle vehicle_behind;
+			if (lane > 0) {
+				if (
+						!get_vehicle_behind(predictions, lane - 1, vehicle_behind)) {
+					states.push_back("PLCL");
+				}
+			}
+			if (lane < lanes_available - 1) {
+				if (
+						!get_vehicle_behind(predictions, lane + 1, vehicle_behind)) {
+					states.push_back("PLCR");
+				}
+			}
+		}
+	} else if (state.compare("PLCL") == 0) {
+		if (lane > 0) {
+			states.push_back("PLCL");
+			states.push_back("LCL");
+		}
+	} else if (state.compare("PLCR") == 0) {
+		if (lane < lanes_available - 1) {
+			states.push_back("PLCR");
+			states.push_back("LCR");
+		}
+	}
+
+	if (states.empty()) {
+		states.push_back("KL");
+	}
+
 	//If state is "LCL" or "LCR", then just return "KL"
 	return states;
 }
@@ -132,7 +146,7 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions,
 	 for a given lane. Tries to choose the maximum velocity and acceleration,
 	 given other vehicle positions and accel/velocity constraints.
 	 */
-	float max_velocity_accel_limit = this->max_acceleration + this->v;
+	float max_velocity_accel_limit = this->max_acceleration * FRAME_SEC + this->v;
 	float new_position;
 	float new_velocity;
 	float new_accel;
@@ -140,27 +154,14 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions,
 	Vehicle vehicle_behind;
 
 	if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
-		this->target_speed -= SPEED_CHANGE_DELTA;
+		this->target_speed -= (SPEED_CHANGE_DELTA * 1.5);
 		this->target_speed = checkSpeedLimit(this->target_speed);
 
 		if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
 			new_velocity = checkSpeedLimit((vehicle_ahead.v + this->target_speed) / 2.0); // avg speed
 		} else {
-			debug("!       get_vehicle_behind");
+			new_velocity = min(max_velocity_accel_limit, this->target_speed);
 
-//			float distance_to_front = vehicle_ahead.s - this->s - this->preferred_buffer;
-			float max_velocity_in_front = vehicle_ahead.v - (0.9 * (this->a) * 0.02);
-
-			new_velocity = min(
-					min(max_velocity_in_front, max_velocity_accel_limit),
-					this->target_speed);
-
-			cout << "vehicle_ahead.v:" << vehicle_ahead.v << ", ";
-			cout << "this->a:" << this->a << ", ";
-			cout << "max_velocity_accel_limit:" << max_velocity_accel_limit << ", ";
-			cout << "max_velocity_in_front:" << max_velocity_in_front << "\n";
-			cout << "this->target_speed:" << this->target_speed << "\n";
-			cout << "new_velocity:" << new_velocity << "\n";
 		}
 	} else {
 		this->target_speed += SPEED_CHANGE_DELTA;
@@ -169,9 +170,7 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions,
 		new_velocity = min(max_velocity_accel_limit, this->target_speed);
 	}
 
-
-
-	new_accel = new_velocity - this->v; //Equation: (v_1 - v_0)/t = acceleration
+	new_accel = (new_velocity - this->v) / FRAME_SEC; //Equation: (v_1 - v_0)/t = acceleration
 	new_position = this->s + new_velocity + new_accel / 2.0;
 	return {new_position, new_velocity, new_accel};
 
@@ -303,7 +302,7 @@ bool Vehicle::get_vehicle_ahead(map<int, vector<Vehicle>> predictions, int lane,
 	 Returns a true if a vehicle is found ahead of the current vehicle, false otherwise. The passed reference
 	 rVehicle is updated if a vehicle is found.
 	 */
-	int min_s = this->goal_s;
+	int min_s = this->s + preferred_buffer;
 	bool found_vehicle = false;
 	Vehicle temp_vehicle;
 	for (map<int, vector<Vehicle>>::iterator it = predictions.begin();
