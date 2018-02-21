@@ -89,14 +89,12 @@ vector<string> Vehicle::successor_states(map<int, vector<Vehicle>> predictions) 
 		if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
 			Vehicle vehicle_behind;
 			if (lane > 0) {
-				if (
-						!get_vehicle_behind(predictions, lane - 1, vehicle_behind)) {
+				if (!get_vehicle_nearest(predictions, lane - 1, vehicle_behind)) {
 					states.push_back("PLCL");
 				}
 			}
 			if (lane < lanes_available - 1) {
-				if (
-						!get_vehicle_behind(predictions, lane + 1, vehicle_behind)) {
+				if (!get_vehicle_nearest(predictions, lane + 1, vehicle_behind)) {
 					states.push_back("PLCR");
 				}
 			}
@@ -272,6 +270,25 @@ vector<Vehicle> Vehicle::lane_change_trajectory(string state,
 float Vehicle::position_at(double t) {
 	return this->s + this->v * t + this->a * t * t / 2.0;
 }
+
+bool Vehicle::get_vehicle_nearest(map<int, vector<Vehicle>> predictions,
+		int lane, Vehicle & rVehicle) {
+	int min_dist = 10;
+	bool found_vehicle = false;
+	Vehicle temp_vehicle;
+	for (map<int, vector<Vehicle>>::iterator it = predictions.begin();
+			it != predictions.end(); ++it) {
+		temp_vehicle = it->second[0];
+		if (temp_vehicle.lane == this->lane && abs(temp_vehicle.s - this->s) < min_dist) {
+
+			min_dist = abs(temp_vehicle.s - this->s);
+			rVehicle = temp_vehicle;
+			found_vehicle = true;
+		}
+	}
+	return found_vehicle;
+}
+
 
 bool Vehicle::get_vehicle_behind(map<int, vector<Vehicle>> predictions,
 		int lane, Vehicle & rVehicle) {

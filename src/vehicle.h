@@ -23,7 +23,7 @@ public:
 
 	int L = 1;
 
-	int preferred_buffer = 20; // impacts "keep lane" behavior.
+	int preferred_buffer = 15; // impacts "keep lane" behavior.
 
 	int lane = 1;
 	int s = 0;
@@ -69,6 +69,9 @@ public:
 			map<int, vector<Vehicle>> predictions);
 
 	float position_at(double t);
+
+	bool get_vehicle_nearest(map<int, vector<Vehicle>> predictions, int lane,
+			Vehicle & rVehicle);
 
 	bool get_vehicle_behind(map<int, vector<Vehicle>> predictions, int lane,
 			Vehicle & rVehicle);
