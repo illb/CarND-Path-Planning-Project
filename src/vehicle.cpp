@@ -11,6 +11,10 @@
 
 const double SPEED_CHANGE_DELTA = 0.224;
 
+const int BUFFER_AHEAD = 15;
+const int BUFFER_BEHIND = 15;
+const int BUFFER_NEAREST = 10;
+
 double checkSpeedLimit(double speed) {
 	if (speed > SPEED_LIMIT) {
 		return SPEED_LIMIT;
@@ -86,15 +90,15 @@ vector<string> Vehicle::successor_states(map<int, vector<Vehicle>> predictions) 
 	string state = this->state;
 	if (state.compare("KL") == 0) {
 		Vehicle vehicle_ahead;
-		if (get_vehicle_ahead(predictions, lane, 15, vehicle_ahead)) {
+		if (get_vehicle_ahead(predictions, lane, BUFFER_AHEAD, vehicle_ahead)) {
 			Vehicle vehicle_behind;
 			if (lane > 0) {
-				if (!get_vehicle_nearest(predictions, lane - 1, 10, vehicle_behind)) {
+				if (!get_vehicle_nearest(predictions, lane - 1, BUFFER_NEAREST, vehicle_behind)) {
 					states.push_back("PLCL");
 				}
 			}
 			if (lane < lanes_available - 1) {
-				if (!get_vehicle_nearest(predictions, lane + 1, 10, vehicle_behind)) {
+				if (!get_vehicle_nearest(predictions, lane + 1, BUFFER_NEAREST, vehicle_behind)) {
 					states.push_back("PLCR");
 				}
 			}
@@ -151,11 +155,11 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions,
 	Vehicle vehicle_ahead;
 	Vehicle vehicle_behind;
 
-	if (get_vehicle_ahead(predictions, lane, 15, vehicle_ahead)) {
+	if (get_vehicle_ahead(predictions, lane, BUFFER_AHEAD, vehicle_ahead)) {
 		this->target_speed -= (SPEED_CHANGE_DELTA * 1.5);
 		this->target_speed = checkSpeedLimit(this->target_speed);
 
-		if (get_vehicle_behind(predictions, lane, 15, vehicle_behind)) {
+		if (get_vehicle_behind(predictions, lane, BUFFER_BEHIND, vehicle_behind)) {
 			new_velocity = checkSpeedLimit((vehicle_ahead.v + this->target_speed) / 2.0); // avg speed
 		} else {
 			new_velocity = min(max_velocity_accel_limit, this->target_speed);
@@ -215,7 +219,7 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state,
 	vector<float> curr_lane_new_kinematics = get_kinematics(predictions,
 			this->lane);
 
-	if (get_vehicle_behind(predictions, this->lane, 15, vehicle_behind)) {
+	if (get_vehicle_behind(predictions, this->lane, BUFFER_BEHIND, vehicle_behind)) {
 		//Keep speed of current lane so as not to collide with car behind.
 		new_s = curr_lane_new_kinematics[0];
 		new_v = curr_lane_new_kinematics[1];
