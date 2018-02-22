@@ -86,15 +86,15 @@ vector<string> Vehicle::successor_states(map<int, vector<Vehicle>> predictions) 
 	string state = this->state;
 	if (state.compare("KL") == 0) {
 		Vehicle vehicle_ahead;
-		if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
+		if (get_vehicle_ahead(predictions, lane, 15, vehicle_ahead)) {
 			Vehicle vehicle_behind;
 			if (lane > 0) {
-				if (!get_vehicle_nearest(predictions, lane - 1, vehicle_behind)) {
+				if (!get_vehicle_nearest(predictions, lane - 1, 10, vehicle_behind)) {
 					states.push_back("PLCL");
 				}
 			}
 			if (lane < lanes_available - 1) {
-				if (!get_vehicle_nearest(predictions, lane + 1, vehicle_behind)) {
+				if (!get_vehicle_nearest(predictions, lane + 1, 10, vehicle_behind)) {
 					states.push_back("PLCR");
 				}
 			}
@@ -151,11 +151,11 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions,
 	Vehicle vehicle_ahead;
 	Vehicle vehicle_behind;
 
-	if (get_vehicle_ahead(predictions, lane, vehicle_ahead)) {
+	if (get_vehicle_ahead(predictions, lane, 15, vehicle_ahead)) {
 		this->target_speed -= (SPEED_CHANGE_DELTA * 1.5);
 		this->target_speed = checkSpeedLimit(this->target_speed);
 
-		if (get_vehicle_behind(predictions, lane, vehicle_behind)) {
+		if (get_vehicle_behind(predictions, lane, 15, vehicle_behind)) {
 			new_velocity = checkSpeedLimit((vehicle_ahead.v + this->target_speed) / 2.0); // avg speed
 		} else {
 			new_velocity = min(max_velocity_accel_limit, this->target_speed);
@@ -215,7 +215,7 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state,
 	vector<float> curr_lane_new_kinematics = get_kinematics(predictions,
 			this->lane);
 
-	if (get_vehicle_behind(predictions, this->lane, vehicle_behind)) {
+	if (get_vehicle_behind(predictions, this->lane, 15, vehicle_behind)) {
 		//Keep speed of current lane so as not to collide with car behind.
 		new_s = curr_lane_new_kinematics[0];
 		new_v = curr_lane_new_kinematics[1];
@@ -272,8 +272,8 @@ float Vehicle::position_at(double t) {
 }
 
 bool Vehicle::get_vehicle_nearest(map<int, vector<Vehicle>> predictions,
-		int lane, Vehicle & rVehicle) {
-	int min_dist = 10;
+		int lane, int bufferS, Vehicle & rVehicle) {
+	int min_dist = bufferS;
 	bool found_vehicle = false;
 	Vehicle temp_vehicle;
 	for (map<int, vector<Vehicle>>::iterator it = predictions.begin();
@@ -290,13 +290,13 @@ bool Vehicle::get_vehicle_nearest(map<int, vector<Vehicle>> predictions,
 }
 
 
-bool Vehicle::get_vehicle_behind(map<int, vector<Vehicle>> predictions,
+bool Vehicle::get_vehicle_behind(map<int, vector<Vehicle>> predictions, int bufferS,
 		int lane, Vehicle & rVehicle) {
 	/*
 	 Returns a true if a vehicle is found behind the current vehicle, false otherwise. The passed reference
 	 rVehicle is updated if a vehicle is found.
 	 */
-	int max_s = this->s - preferred_buffer;
+	int max_s = this->s - bufferS;
 	bool found_vehicle = false;
 	Vehicle temp_vehicle;
 	for (map<int, vector<Vehicle>>::iterator it = predictions.begin();
@@ -313,13 +313,13 @@ bool Vehicle::get_vehicle_behind(map<int, vector<Vehicle>> predictions,
 	return found_vehicle;
 }
 
-bool Vehicle::get_vehicle_ahead(map<int, vector<Vehicle>> predictions, int lane,
+bool Vehicle::get_vehicle_ahead(map<int, vector<Vehicle>> predictions, int lane, int bufferS,
 		Vehicle & rVehicle) {
 	/*
 	 Returns a true if a vehicle is found ahead of the current vehicle, false otherwise. The passed reference
 	 rVehicle is updated if a vehicle is found.
 	 */
-	int min_s = this->s + preferred_buffer;
+	int min_s = this->s + bufferS;
 	bool found_vehicle = false;
 	Vehicle temp_vehicle;
 	for (map<int, vector<Vehicle>>::iterator it = predictions.begin();
