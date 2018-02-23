@@ -11,12 +11,8 @@
 
 const float BUFFER_AHEAD = 15.0;
 const float BUFFER_BEHIND = 15.0;
-const float BUFFER_NEXT_LANE = 10.0;
-const float BUFFER_TOO_CLOSE = 5.0;
-
-void debug(string msg) {
-	cout << "DEBUG VEHICLE:" << msg << "\n";
-}
+const float BUFFER_NEXT_LANE = 12.0;
+const float BUFFER_TOO_CLOSE = 7.0;
 
 /**
  * Initializes Vehicle
@@ -52,6 +48,9 @@ vector<Vehicle> Vehicle::choose_next_state(
 
 	 */
 	vector<string> states = successor_states(predictions);
+
+	cout << "successor_states.size=" << states.size() << "\n";
+
 	float cost;
 	vector<float> costs;
 	vector<string> final_states;
@@ -140,7 +139,9 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions,
 	 for a given lane. Tries to choose the maximum velocity and acceleration,
 	 given other vehicle positions and accel/velocity constraints.
 	 */
-	float max_velocity_accel_limit = this->max_acceleration * FRAME_SEC + this->v;
+	float max_velocity_accel_limit = this->v + (this->max_acceleration * FRAME_SEC);
+	float min_velocity_accel_limit = this->v - (this->max_acceleration * FRAME_SEC);
+
 	float new_position;
 	float new_velocity;
 	float new_accel;
@@ -148,30 +149,30 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions,
 	Vehicle vehicle_behind;
 
 	if (get_vehicle_ahead(predictions, lane, BUFFER_AHEAD, vehicle_ahead)) {
-		if (get_vehicle_behind(predictions, lane, BUFFER_BEHIND, vehicle_behind)) {
-			debug("!!! get_vehicle_behind");
-			new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
-		} else {
+//		if (get_vehicle_behind(predictions, lane, BUFFER_BEHIND, vehicle_behind)) {
+//			new_velocity = vehicle_ahead.v; //must travel at the speed of traffic, regardless of preferred buffer
+//		} else {
 			float distance = vehicle_ahead.s - this->s;
-			float max_velocity_in_front = distance + (vehicle_ahead.v)
-					- ((this->a * FRAME_SEC) / 2.0);
 
-//			if (max_velocity_in_front < vehicle_ahead.v) {
-//				max_velocity_in_front = vehicle_ahead.v;
-//			}
+//			cout << "distance : " << distance << "\n";
+//			cout << "vehicle_ahead.v : " << vehicle_ahead.v << "\n";
+//			cout << "this->v : " << this->v << "\n";
+//			cout << "this->a : " << this->a << "\n";
 
+			float max_velocity_in_front = 0.0;
+			float too_close_distance = 3.0;
+			if (distance <= too_close_distance) {
+				float weight = distance / too_close_distance;
+				max_velocity_in_front = vehicle_ahead.v * weight;
+			} else {
+				float weight = (distance - too_close_distance) / (BUFFER_AHEAD - too_close_distance);
+				max_velocity_in_front = (v * weight) + (vehicle_ahead.v * (1.0 - weight));
+			}
 
-			cout << "distance : " << distance << "\n";
-			cout << "vehicle_ahead.v : " << vehicle_ahead.v << "\n";
-			cout << "this->v : " << this->v << "\n";
-			cout << "this->a : " << this->a << "\n";
-			cout << "max_velocity_in_front : " << max_velocity_in_front << "\n";
-
-
-			new_velocity = min(
-					min(max_velocity_in_front, max_velocity_accel_limit),
-					this->target_speed);
-		}
+			float velocity1 = min(max_velocity_in_front, max_velocity_accel_limit);
+			float velocity2 = max(velocity1, min_velocity_accel_limit);
+			new_velocity = min(velocity2, this->target_speed);
+//		}
 	} else {
 		new_velocity = min(max_velocity_accel_limit, this->target_speed);
 	}
