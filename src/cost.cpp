@@ -34,13 +34,13 @@ float inefficiency_cost(const Vehicle & vehicle,
 	 Cost becomes higher for trajectories with intended lane and final lane that have traffic slower than vehicle's target speed.
 	 */
 
-	float proposed_speed_intended = lane_speed(predictions,
+	float proposed_speed_intended = lane_speed(vehicle, predictions,
 			data["intended_lane"]);
 	if (proposed_speed_intended < 0) {
 		proposed_speed_intended = vehicle.target_speed;
 	}
 
-	float proposed_speed_final = lane_speed(predictions, data["final_lane"]);
+	float proposed_speed_final = lane_speed(vehicle, predictions, data["final_lane"]);
 	if (proposed_speed_final < 0) {
 		proposed_speed_final = vehicle.target_speed;
 	}
@@ -51,21 +51,20 @@ float inefficiency_cost(const Vehicle & vehicle,
 	return cost;
 }
 
-float lane_speed(const map<int, vector<Vehicle>> & predictions, int lane) {
-	/*
-	 All non ego vehicles in a lane have the same speed, so to get the speed limit for a lane,
-	 we can just find one vehicle in that lane.
-	 */
+float lane_speed(const Vehicle & vehicle, const map<int, vector<Vehicle>> & predictions, int lane) {
+	int min_dist = 20;
+	float res_v = -1.0; 	//Found no vehicle in the lane
 	for (map<int, vector<Vehicle>>::const_iterator it = predictions.begin();
 			it != predictions.end(); ++it) {
 		int key = it->first;
-		Vehicle vehicle = it->second[0];
-		if (vehicle.lane == lane && key != -1) {
-			return vehicle.v;
+		Vehicle veh = it->second[0];
+		int dist = abs(vehicle.s - veh.s);
+		if (veh.lane == lane && key != -1 && dist < min_dist) {
+			min_dist = dist;
+			res_v = veh.v;
 		}
 	}
-	//Found no vehicle in the lane
-	return -1.0;
+	return res_v;
 }
 
 float calculate_cost(const Vehicle & vehicle,
