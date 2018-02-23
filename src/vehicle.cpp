@@ -9,16 +9,10 @@
 #include "const.h"
 #include "cost.h"
 
-const int BUFFER_AHEAD = 15;
-const int BUFFER_BEHIND = 15;
-const int BUFFER_NEAREST = 10;
-
-double checkSpeedLimit(double speed) {
-	if (speed > SPEED_LIMIT) {
-		return SPEED_LIMIT;
-	}
-	return speed;
-}
+const float BUFFER_AHEAD = 15.0;
+const float BUFFER_BEHIND = 15.0;
+const float BUFFER_NEXT_LANE = 10.0;
+const float BUFFER_TOO_CLOSE = 5.0;
 
 void debug(string msg) {
 	cout << "DEBUG VEHICLE:" << msg << "\n";
@@ -91,12 +85,12 @@ vector<string> Vehicle::successor_states(map<int, vector<Vehicle>> predictions) 
 		if (get_vehicle_ahead(predictions, lane, BUFFER_AHEAD, vehicle_ahead)) {
 			Vehicle vehicle_behind;
 			if (lane > 0) {
-				if (!get_vehicle_nearest(predictions, lane - 1, BUFFER_NEAREST, vehicle_behind)) {
+				if (!get_vehicle_nearest(predictions, lane - 1, BUFFER_NEXT_LANE, vehicle_behind)) {
 					states.push_back("PLCL");
 				}
 			}
 			if (lane < lanes_available - 1) {
-				if (!get_vehicle_nearest(predictions, lane + 1, BUFFER_NEAREST, vehicle_behind)) {
+				if (!get_vehicle_nearest(predictions, lane + 1, BUFFER_NEXT_LANE, vehicle_behind)) {
 					states.push_back("PLCR");
 				}
 			}
@@ -224,14 +218,15 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state,
 	float new_s;
 	float new_v;
 	float new_a;
-	Vehicle vehicle_behind;
+	Vehicle vehicle_nearest;
 	int new_lane = this->lane + lane_direction[state];
 	vector<Vehicle> trajectory = { Vehicle(this->lane, this->s, this->v,
 			this->a, this->state) };
 	vector<float> curr_lane_new_kinematics = get_kinematics(predictions,
 			this->lane);
 
-	if (get_vehicle_behind(predictions, this->lane, BUFFER_BEHIND, vehicle_behind)) {
+	if (get_vehicle_nearest(predictions, new_lane, BUFFER_NEXT_LANE, vehicle_nearest) ||
+			get_vehicle_nearest(predictions, this->lane, BUFFER_TOO_CLOSE, vehicle_nearest)) {
 		//Keep speed of current lane so as not to collide with car behind.
 		new_s = curr_lane_new_kinematics[0];
 		new_v = curr_lane_new_kinematics[1];
@@ -242,11 +237,11 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state,
 		vector<float> next_lane_new_kinematics = get_kinematics(predictions,
 				new_lane);
 		//Choose kinematics with lowest velocity.
-		if (next_lane_new_kinematics[1] < curr_lane_new_kinematics[1]) {
-			best_kinematics = next_lane_new_kinematics;
-		} else {
+//		if (next_lane_new_kinematics[1] < curr_lane_new_kinematics[1]) {
+//			best_kinematics = next_lane_new_kinematics;
+//		} else {
 			best_kinematics = curr_lane_new_kinematics;
-		}
+//		}
 		new_s = best_kinematics[0];
 		new_v = best_kinematics[1];
 		new_a = best_kinematics[2];
@@ -268,7 +263,7 @@ vector<Vehicle> Vehicle::lane_change_trajectory(string state,
 	for (map<int, vector<Vehicle>>::iterator it = predictions.begin();
 			it != predictions.end(); ++it) {
 		next_lane_vehicle = it->second[0];
-		if (abs(next_lane_vehicle.s - this->s) < 5.0
+		if (abs(next_lane_vehicle.s - this->s) < BUFFER_TOO_CLOSE
 				&& next_lane_vehicle.lane == new_lane) {
 			//If lane change is not possible, return empty trajectory.
 			return trajectory;
