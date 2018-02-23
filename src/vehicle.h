@@ -24,14 +24,14 @@ public:
 	int L = 1;
 
 	int lane = 1;
-	int s = 0;
+	float s = 0;
 	float v = 0.0;
 	float a = 0.0;
 	float target_speed = 0.0;
 	int lanes_available = 0;
 	float max_acceleration = 0.0;
 	int goal_lane = 1;
-	int goal_s = 0;
+	float goal_s = 0.0;
 
 	string state = "CS";
 
@@ -68,13 +68,13 @@ public:
 
 	float position_at(double t);
 
-	bool get_vehicle_nearest(map<int, vector<Vehicle>> predictions, int lane, int bufferS,
+	bool get_vehicle_nearest(map<int, vector<Vehicle>> predictions, int lane, float bufferS,
 			Vehicle & rVehicle);
 
-	bool get_vehicle_behind(map<int, vector<Vehicle>> predictions, int lane, int bufferS,
+	bool get_vehicle_behind(map<int, vector<Vehicle>> predictions, int lane, float bufferS,
 			Vehicle & rVehicle);
 
-	bool get_vehicle_ahead(map<int, vector<Vehicle>> predictions, int lane, int bufferS,
+	bool get_vehicle_ahead(map<int, vector<Vehicle>> predictions, int lane, float bufferS,
 			Vehicle & rVehicle);
 
 	vector<Vehicle> generate_predictions(int horizon = 2);

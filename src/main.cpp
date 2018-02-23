@@ -210,7 +210,7 @@ int main() {
 	}
 
 	vector<float> road_data;
-	road_data.push_back(10.0); // target_speed
+	road_data.push_back(SPEED_LIMIT - 2.0f); // target_speed
 	road_data.push_back(3); // lanes_available
 	road_data.push_back(20); // goal_s
 	road_data.push_back(1); // goal_lane
