@@ -9,8 +9,11 @@
 
 ## Speed Control
 * target_speed controls the maximum speed to less than 40mph
-* if the vehicle ahead is too close, slow down 0.224 mph
-* else, speed up 0.224 mph
+* if the vehicle ahead is close, mix the velocity of my vehicle and the velocity of vehicle ahead in proportion to distance.
+  - close : The distance from the preceding vehicle is less than 15
+* else if the vehicle ahead is too close, use the velocity of vehicle ahead in inverse proportion to distance.
+  - too close : The distance from the preceding vehicle is less than 7
+* else speed up with max acceleration
 
 ## Finite State Machine States
 * KL (Keep Lane)
