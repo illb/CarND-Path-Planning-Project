@@ -214,7 +214,7 @@ int main() {
 	road_data.push_back(3); // lanes_available
 	road_data.push_back(20); // goal_s
 	road_data.push_back(1); // goal_lane
-	road_data.push_back(200.0 - 10.0); // max_acceleration
+	road_data.push_back(200.0 * 0.9); // max_acceleration
 	vehicle.configure(road_data);
 
 	h.onMessage(
@@ -305,7 +305,7 @@ int main() {
 
 							///////////////////////////////
 							// debug
-							cout << "state=" << vehicle.state << "\n";
+							cout << "state=" << vehicle.state << ", state_tick=" << vehicle.state_tick << "\n";
 							///////////////////////////////
 
 							// Create a list of widely spaced (x, y) waypoints, evenly spaced at 30m

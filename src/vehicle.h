@@ -34,6 +34,7 @@ public:
 	float goal_s = 0.0;
 
 	string state = "CS";
+	int state_tick = 0;
 
 	/**
 	 * Constructor

@@ -11,7 +11,7 @@
 
 const float BUFFER_AHEAD = 15.0;
 const float BUFFER_BEHIND = 15.0;
-const float BUFFER_NEXT_LANE = 12.0;
+const float BUFFER_NEXT_LANE = 11.0;
 const float BUFFER_TOO_CLOSE = 7.0;
 
 /**
@@ -71,6 +71,8 @@ vector<Vehicle> Vehicle::choose_next_state(
 	return final_trajectories[best_idx];
 }
 
+const int PREPARE_STATE_RESET_TICK_COUNT = 20;
+
 vector<string> Vehicle::successor_states(map<int, vector<Vehicle>> predictions) {
 	/*
 	 Provides the possible next states given the current state for the FSM
@@ -95,14 +97,18 @@ vector<string> Vehicle::successor_states(map<int, vector<Vehicle>> predictions) 
 			}
 		}
 	} else if (state.compare("PLCL") == 0) {
-		if (lane > 0) {
-			states.push_back("PLCL");
-			states.push_back("LCL");
+		if (state_tick < PREPARE_STATE_RESET_TICK_COUNT) {
+			if (lane > 0) {
+				states.push_back("PLCL");
+				states.push_back("LCL");
+			}
 		}
 	} else if (state.compare("PLCR") == 0) {
-		if (lane < lanes_available - 1) {
-			states.push_back("PLCR");
-			states.push_back("LCR");
+		if (state_tick < PREPARE_STATE_RESET_TICK_COUNT) {
+			if (lane < lanes_available - 1) {
+				states.push_back("PLCR");
+				states.push_back("LCR");
+			}
 		}
 	}
 
@@ -160,18 +166,19 @@ vector<float> Vehicle::get_kinematics(map<int, vector<Vehicle>> predictions,
 //			cout << "this->a : " << this->a << "\n";
 
 			float max_velocity_in_front = 0.0;
-			float too_close_distance = 3.0;
+			float too_close_distance = BUFFER_TOO_CLOSE;
 			if (distance <= too_close_distance) {
 				float weight = distance / too_close_distance;
 				max_velocity_in_front = vehicle_ahead.v * weight;
+				max_velocity_in_front = min(max_velocity_in_front, max_velocity_accel_limit);
 			} else {
 				float weight = (distance - too_close_distance) / (BUFFER_AHEAD - too_close_distance);
 				max_velocity_in_front = (v * weight) + (vehicle_ahead.v * (1.0 - weight));
+				max_velocity_in_front = min(max_velocity_in_front, max_velocity_accel_limit);
+				max_velocity_in_front = max(max_velocity_in_front, min_velocity_accel_limit);
 			}
 
-			float velocity1 = min(max_velocity_in_front, max_velocity_accel_limit);
-			float velocity2 = max(velocity1, min_velocity_accel_limit);
-			new_velocity = min(velocity2, this->target_speed);
+			new_velocity = min(max_velocity_in_front, this->target_speed);
 //		}
 	} else {
 		new_velocity = min(max_velocity_accel_limit, this->target_speed);
@@ -227,7 +234,7 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state,
 			this->lane);
 
 	if (get_vehicle_nearest(predictions, new_lane, BUFFER_NEXT_LANE, vehicle_nearest) ||
-			get_vehicle_nearest(predictions, this->lane, BUFFER_TOO_CLOSE, vehicle_nearest)) {
+			get_vehicle_nearest(predictions, this->lane, BUFFER_TOO_CLOSE - 1.0, vehicle_nearest)) {
 		//Keep speed of current lane so as not to collide with car behind.
 		new_s = curr_lane_new_kinematics[0];
 		new_v = curr_lane_new_kinematics[1];
@@ -239,9 +246,9 @@ vector<Vehicle> Vehicle::prep_lane_change_trajectory(string state,
 				new_lane);
 		//Choose kinematics with lowest velocity.
 //		if (next_lane_new_kinematics[1] < curr_lane_new_kinematics[1]) {
-//			best_kinematics = next_lane_new_kinematics;
+			best_kinematics = next_lane_new_kinematics;
 //		} else {
-			best_kinematics = curr_lane_new_kinematics;
+//			best_kinematics = curr_lane_new_kinematics;
 //		}
 		new_s = best_kinematics[0];
 		new_v = best_kinematics[1];
@@ -264,7 +271,7 @@ vector<Vehicle> Vehicle::lane_change_trajectory(string state,
 	for (map<int, vector<Vehicle>>::iterator it = predictions.begin();
 			it != predictions.end(); ++it) {
 		next_lane_vehicle = it->second[0];
-		if (abs(next_lane_vehicle.s - this->s) < BUFFER_TOO_CLOSE
+		if (abs(next_lane_vehicle.s - this->s) < BUFFER_NEXT_LANE
 				&& next_lane_vehicle.lane == new_lane) {
 			//If lane change is not possible, return empty trajectory.
 			return trajectory;
@@ -366,6 +373,12 @@ void Vehicle::realize_next_state(vector<Vehicle> trajectory) {
 	 Sets state and kinematics for ego vehicle using the last state of the trajectory.
 	 */
 	Vehicle next_state = trajectory[1];
+	if (this->state != next_state.state) {
+		state_tick = 0;
+	} else {
+		state_tick++;
+	}
+
 	this->state = next_state.state;
 	this->lane = next_state.lane;
 	this->s = next_state.s;
