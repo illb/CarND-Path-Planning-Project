@@ -69,8 +69,7 @@ public:
 
 	float position_at(double t);
 
-	bool get_vehicle_nearest(map<int, vector<Vehicle>> predictions, int lane, float bufferS,
-			Vehicle & rVehicle);
+	bool can_change_lane(map<int, vector<Vehicle>> predictions, int lane);
 
 	bool get_vehicle_behind(map<int, vector<Vehicle>> predictions, int lane, float bufferS,
 			Vehicle & rVehicle);

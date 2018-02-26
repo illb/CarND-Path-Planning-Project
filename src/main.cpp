@@ -214,7 +214,7 @@ int main() {
 	road_data.push_back(3); // lanes_available
 	road_data.push_back(20); // goal_s
 	road_data.push_back(1); // goal_lane
-	road_data.push_back(200.0 * 0.9); // max_acceleration
+	road_data.push_back(200.0 * 0.80); // max_acceleration
 	vehicle.configure(road_data);
 
 	h.onMessage(

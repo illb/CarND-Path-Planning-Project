@@ -6,7 +6,7 @@
 #include <math.h>
 
 const float REACH_GOAL = pow(10, 6);
-const float EFFICIENCY = pow(10, 5);
+const float EFFICIENCY = pow(10, 7);
 
 float goal_distance_cost(const Vehicle & vehicle,
 		const vector<Vehicle> & trajectory,
