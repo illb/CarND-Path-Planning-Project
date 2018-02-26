@@ -8,7 +8,7 @@
 * smoothes trajectory and generate next_x and next_y values and puts them into the result json.
 
 ## Speed Control
-* target_speed controls the maximum speed to less than 45 mph
+* target_speed controls the maximum speed to less than 49.5 mph
 * if the vehicle ahead is close, mix the velocity of my vehicle and the velocity of vehicle ahead in proportion to distance.
   - close : The distance from the preceding vehicle is less than 15
 * else if the vehicle ahead is too close, use the velocity of vehicle ahead in inverse proportion to distance.
