@@ -24,17 +24,27 @@
 * PLCL (Prepare Lane Change Left), PLCR (Prepare Lane Change Left)
   - PLCL can change to PLCL and LCL in next step
   - PLCR can change to PLCR and LCR in next step
-  - compare cost keep lane trajectory
-  - If too close (distance 5 or less) vehicle behind or a next lane is not empty (there's a vehicle distance 10 or less) select the current lane trajectory.
-  - else select the next lane trajectory.
+  - If a vehicle in front of the current lane is too close  (distance 8 or less) or the next lane is occupied by a vehicle (see can_change_lane function below)
+    - Go through the current lane
+  - else go through the next lane
 
 * LCL (Lane Change Left), LCR (Lane Change Right)
   - lane change and change state to KL
+
+## can_change_lane function
+* is there a following case, false
+  - the distance to the front vehicle is too close (distance 12 or less)
+  - the front vehicle is slow (velocity differance less than 3)
+  - the distance to the rear vehicle is too close (distance 9 or less)
+  - the front vehicle is fast (velocity differance greater than 10)
+* else true
 
 ## Cost Functions
 * Among the result trajectories, the lowest cost trajectory is seleted
 * cost functions
   - goal_distance_cost : both intended_lane and final_lane should be close to goal lane to reduce cost.
+    - weight : 10^6
   - inefficiency_cost : both speeds of intended_lane and final_lane should be close to target speed to reduce cost.
+    - weight : 10^7
 
   
